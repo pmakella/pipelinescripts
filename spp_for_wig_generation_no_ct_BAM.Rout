@@ -1,0 +1,101 @@
+WARNING: unknown option '-args'
+
+WARNING: unknown option '--baseDir=/glusterfs/users/pmakella/2012wig'
+
+WARNING: unknown option '--outDir=/glusterfs/users/pmakella/2012wig'
+
+WARNING: unknown option '--factor=2012-1197_120926_SN484_0183_AC167BACXX_3_sequence.txt.gzdmel'
+
+WARNING: unknown option '--ipFile=2012-1197_120926_SN484_0183_AC167BACXX_3_sequence.txt.gz_q30.sam.bam'
+
+
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> ###### passing auguments from command line
+> rm(list=ls())
+> 
+> args <- commandArgs()
+> 
+> baseDir <- sub('--baseDir=', '', args[grep('--baseDir=', args)])
+> outDir <- sub('--outDir=', '', args[grep('--outDir=', args)])
+> factor <- sub('--factor=', '', args[grep('--factor=', args)])
+> ipFileName <- sub('--ipFile=', '', args[grep('--ipFile=', args)])
+> 
+> ipFile <- paste (baseDir, ipFileName, sep = "/")
+> 
+> densityWigString <- paste (factor, "no_ct_density.wig", sep="")
+> densityFile <- paste (outDir, densityWigString, sep="/")   		
+> wigString <- paste (factor, ", smoothed, tag density", sep=" ")
+> CCString <- paste (factor, ".crosscorrelation.pdf",sep="")
+> 
+> 
+> 
+> 
+> ###### START HERE ######
+> library(spp)
+Loading required package: caTools
+Loading required package: bitops
+> 
+> ###### load alignment
+> chip.data <- read.bam.tags(ipFile);
+opened /glusterfs/users/pmakella/2012wig/2012-1197_120926_SN484_0183_AC167BACXX_3_sequence.txt.gz_q30.sam.bam
+done. read 13707030 fragments
+> 
+> ###### get binding info from cross-correlation profile
+> ###### noticeable auguments: srange, bin, remove.tag.anomalies)
+> #binding.characteristics <- get.binding.characteristics(chip.data,srange=c(50,500),bin=5);
+> binding.characteristics <- get.binding.characteristics(chip.data,srange=c(-500,500),bin=5,min.tag.count=10000);
+> 
+> ###### print out binding peak separation distance
+> print(paste("binding peak separation distance =",binding.characteristics$peak$x))
+[1] "binding peak separation distance = 10"
+> 
+> ###### plot cross-correlation profile
+> pdf(file=CCString,width=5,height=5)
+> par(mar = c(3.5,3.5,1.0,0.5), mgp = c(2,0.65,0), cex = 0.8);
+> plot(binding.characteristics$cross.correlation,type='l',xlab="strand shift",ylab="cross-correlation",main=factor);
+> abline(v=binding.characteristics$peak$x,lty=2,col=2)
+> dev.off();
+null device 
+          1 
+> 
+> ###### accepting tag alignments passed "remove.tag.anomalies" augument in binding.characteristics()
+> chip.data <- select.informative.tags(chip.data,binding.characteristics);
+> ###### accepting all of the tag alignments
+> #chip.data <- select.informative.tags(chip.data);
+> 
+> 
+> 
+> 
+> 
+> ###### output smoothed tag density (subtracting re-scaled input) into a WIG file
+> ###### note that the tags are shifted by half of the peak separation distance
+> tag.shift <- round(binding.characteristics$peak$x/2)
+> #smoothed.density <- get.smoothed.tag.density(chip.data,bandwidth=200,step=100,tag.shift=tag.shift);
+> smoothed.density <- get.smoothed.tag.density(chip.data,bandwidth=200,tag.shift=tag.shift);
+> writewig(smoothed.density, densityFile, wigString);
+[1] "/glusterfs/users/pmakella/2012wig/2012-1197_120926_SN484_0183_AC167BACXX_3_sequence.txt.gzdmelno_ct_density.wig"
+> rm(smoothed.density);
+> 
+> 
+> proc.time()
+    user   system  elapsed 
+2058.908    6.400 2094.618 
